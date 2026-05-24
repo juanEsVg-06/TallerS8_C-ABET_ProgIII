@@ -4,7 +4,6 @@ import estructura.ListaDobleReportes;
 import modelo.EstadoReporte;
 import modelo.Reporte;
 
-
 import javax.swing.*;
 import java.awt.*;
 
@@ -12,7 +11,7 @@ public class MainGUI extends JFrame {
 
     private GestorReportes gestor;
 
-    // Componentes visuales
+    // Componentes visuales del formulario principal (Ahora exclusivo para Registrar)
     private JTextField txtId;
     private JTextField txtNombre;
     private JTextField txtDescripcion;
@@ -28,8 +27,9 @@ public class MainGUI extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout(10, 10));
 
-        // --- PANEL SUPERIOR: Formulario de Entrada ---
-        JPanel panelFormulario = new JPanel(new GridLayout(7, 2, 5, 5));
+        // --- PANEL SUPERIOR: Formulario de Registro ---
+        // Reducimos a 6 filas porque los botones de acciones especiales ya no dependen de este panel
+        JPanel panelFormulario = new JPanel(new GridLayout(6, 2, 5, 5));
         panelFormulario.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         panelFormulario.add(new JLabel("ID del Reporte:"));
@@ -48,19 +48,13 @@ public class MainGUI extends JFrame {
         comboGravedad = new JComboBox<>(new Integer[]{1, 2, 3, 4, 5});
         panelFormulario.add(comboGravedad);
 
-        panelFormulario.add(new JLabel("Seleccionar Estado:"));
+        panelFormulario.add(new JLabel("Estado Inicial:"));
         comboEstado = new JComboBox<>(EstadoReporte.values());
         panelFormulario.add(comboEstado);
 
-        // Botones de acción principal
         JButton btnAgregar = new JButton("Registrar Reporte");
-        JButton btnEliminar = new JButton("Eliminar por ID");
-        JButton btnActualizar = new JButton("Actualizar Estado");
-
         panelFormulario.add(btnAgregar);
-        panelFormulario.add(btnEliminar);
-        panelFormulario.add(btnActualizar);
-        panelFormulario.add(new JLabel(""));
+        panelFormulario.add(new JLabel("")); // Espacio en blanco para cuadrar la cuadrícula
 
         add(panelFormulario, BorderLayout.NORTH);
 
@@ -72,27 +66,35 @@ public class MainGUI extends JFrame {
         scroll.setBorder(BorderFactory.createTitledBorder("Historial y Consultas"));
         add(scroll, BorderLayout.CENTER);
 
-        // --- PANEL INFERIOR: Botones de Filtro (Se añade el de Gravedad) ---
-        JPanel panelFiltros = new JPanel(new FlowLayout());
+        // --- PANEL INFERIOR: Barra de Herramientas Dinámica ---
+        JPanel panelFiltros = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
         JButton btnMostrarTodos = new JButton("Mostrar Todos");
         JButton btnMostrarPendientes = new JButton("Solo Pendientes");
-        JButton btnMostrarPorGravedad = new JButton("Filtrar por Gravedad"); // ¡Nuevo Botón!
+        JButton btnMostrarPorGravedad = new JButton("Filtrar por Gravedad");
+        JButton btnActualizar = new JButton("Actualizar Estado");
+        JButton btnEliminar = new JButton("Eliminar por ID");
+
+        // Estilizamos un poco los botones de acción para diferenciarlos de los filtros
+        btnActualizar.setBackground(new Color(230, 242, 255));
+        btnEliminar.setBackground(new Color(255, 230, 230));
 
         panelFiltros.add(btnMostrarTodos);
         panelFiltros.add(btnMostrarPendientes);
-        panelFiltros.add(btnMostrarPorGravedad); // Añadido al panel
+        panelFiltros.add(btnMostrarPorGravedad);
+        panelFiltros.add(btnActualizar);
+        panelFiltros.add(btnEliminar);
         add(panelFiltros, BorderLayout.SOUTH);
 
         // --- EVENTOS DE LOS BOTONES ---
 
-        // 1. Registrar
+        // 1. Acción: Registrar Reporte
         btnAgregar.addActionListener(e -> {
             String id = txtId.getText().trim();
             String nombre = txtNombre.getText().trim();
             String desc = txtDescripcion.getText().trim();
 
             if (id.isEmpty() || nombre.isEmpty() || desc.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Todos los campos son obligatorios.", "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Todos los campos son obligatorios para el registro.", "Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
@@ -101,10 +103,10 @@ public class MainGUI extends JFrame {
                 return;
             }
 
-            int gravedad = (Integer) comboGravedad.getSelectedItem();
-            EstadoReporte estado = (EstadoReporte) comboEstado.getSelectedItem();
+            int NewsGravedad = (Integer) comboGravedad.getSelectedItem();
+            EstadoReporte NewsEstado = (EstadoReporte) comboEstado.getSelectedItem();
 
-            Reporte nuevoReporte = new Reporte(id, nombre, desc, gravedad, estado);
+            Reporte nuevoReporte = new Reporte(id, nombre, desc, NewsGravedad, NewsEstado);
             gestor.agregarReporte(nuevoReporte);
 
             JOptionPane.showMessageDialog(this, "Reporte registrado con éxito.");
@@ -112,53 +114,84 @@ public class MainGUI extends JFrame {
             limpiarCampos();
         });
 
-        // 2. Eliminar
+        // 2. Acción: Eliminar por ID (También migrado a ventana pequeña para consistencia)
         btnEliminar.addActionListener(e -> {
-            String idBorrar = txtId.getText().trim();
+            String idBorrar = JOptionPane.showInputDialog(this, "Ingrese el ID del reporte que desea eliminar:", "Eliminar Reporte", JOptionPane.WARNING_MESSAGE);
+
+            if (idBorrar == null) return; // Canceló la acción
+            idBorrar = idBorrar.trim();
             if (idBorrar.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Ingrese el ID del reporte a eliminar en el campo superior.", "Atención", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Debe ingresar un ID válido.", "Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
+
             gestor.eliminarReporte(idBorrar);
-            JOptionPane.showMessageDialog(this, "Operación finalizada. Verifique el historial.");
             areaResultados.setText(gestor.mostrarTodos());
-            txtId.setText("");
         });
 
-        // 3. Actualizar Estado (Corregido para aislar solo el ID)
+        // 3. ¡NUEVO FLUJO: Actualizar Estado paso a paso!
         btnActualizar.addActionListener(e -> {
-            // Corrección: Forzamos la limpieza de los otros campos para que no confundan al usuario
-            txtNombre.setText("");
-            txtDescripcion.setText("");
+            // PASO A: Ventana pequeña para pedir estrictamente el ID
+            String idBuscar = JOptionPane.showInputDialog(this, "Ingrese el ID del reporte a modificar:", "Actualizar Estado - Paso 1", JOptionPane.QUESTION_MESSAGE);
 
-            String id = txtId.getText().trim();
-            EstadoReporte nuevoEstado = (EstadoReporte) comboEstado.getSelectedItem();
+            if (idBuscar == null) return; // El usuario presionó cancelar
+            idBuscar = idBuscar.trim();
 
-            if (id.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Por favor, ingrese únicamente el ID del reporte a actualizar.", "Atención", JOptionPane.WARNING_MESSAGE);
+            if (idBuscar.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "El ID no puede estar vacío.", "Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
-            boolean exito = gestor.actualizarEstado(id, nuevoEstado);
+            // Validación: Verificar si el reporte existe en la lista enlazada
+            Reporte reporteEncontrado = gestor.obtenerReporte(idBuscar);
+            if (reporteEncontrado == null) {
+                JOptionPane.showMessageDialog(this, "No se encontró ningún reporte con el ID: " + idBuscar, "Error de Búsqueda", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
 
-            if (exito) {
-                JOptionPane.showMessageDialog(this, "Estado del reporte " + id + " actualizado a " + nuevoEstado + " con éxito.");
-                areaResultados.setText(gestor.mostrarTodos());
-                limpiarCampos();
-            } else {
-                JOptionPane.showMessageDialog(this, "No se encontró ningún reporte con el ID: " + id, "Error", JOptionPane.ERROR_MESSAGE);
+            // PASO B: Si existe, se abre la segunda ventana pequeña con el menú desplegable (Enum)
+            EstadoReporte nuevoEstado = (EstadoReporte) JOptionPane.showInputDialog(
+                    this,
+                    "Reporte de: " + reporteEncontrado.getNombreUser() + "\nSeleccione el nuevo estado del caso:",
+                    "Actualizar Estado - Paso 2",
+                    JOptionPane.QUESTION_MESSAGE,
+                    null,
+                    EstadoReporte.values(),      // Pasa el array de opciones de tu Enum
+                    reporteEncontrado.getEstado() // Pone como predeterminado el estado actual
+            );
+
+            // PASO C: Si selecciona una opción y da clic en aceptar/confirmar
+            if (nuevoEstado != null) {
+                gestor.actualizarEstado(idBuscar, nuevoEstado);
+                JOptionPane.showMessageDialog(this, "Estado del caso '" + idBuscar + "' actualizado correctamente.");
+                areaResultados.setText(gestor.mostrarTodos()); // Actualiza el JTextArea inmediatamente
             }
         });
 
-        // 4. Filtros de visualización
+        // 4. ¡NUEVO FLUJO: Filtrar por Gravedad en ventana independiente!
+        btnMostrarPorGravedad.addActionListener(e -> {
+            Integer[] opcionesGravedad = {1, 2, 3, 4, 5};
+
+            // Ventana pequeña desplegando la lista de números
+            Integer gravedadSeleccionada = (Integer) JOptionPane.showInputDialog(
+                    this,
+                    "Seleccione el nivel de gravedad para filtrar el historial:",
+                    "Filtrar por Gravedad",
+                    JOptionPane.QUESTION_MESSAGE,
+                    null,
+                    opcionesGravedad,
+                    1 // Valor inicial por defecto
+            );
+
+            // Al dar clic en confirmar (si no es nulo)
+            if (gravedadSeleccionada != null) {
+                areaResultados.setText(gestor.mostrarPorGravedad(gravedadSeleccionada));
+            }
+        });
+
+        // Filtros directos de visualización general
         btnMostrarTodos.addActionListener(e -> areaResultados.setText(gestor.mostrarTodos()));
         btnMostrarPendientes.addActionListener(e -> areaResultados.setText(gestor.mostrarPendientes()));
-
-        // ¡Nuevo Evento para filtrar por gravedad!
-        btnMostrarPorGravedad.addActionListener(e -> {
-            int gravedadSeleccionada = (Integer) comboGravedad.getSelectedItem();
-            areaResultados.setText(gestor.mostrarPorGravedad(gravedadSeleccionada));
-        });
     }
 
     private void limpiarCampos() {
@@ -173,7 +206,7 @@ public class MainGUI extends JFrame {
         SwingUtilities.invokeLater(() -> {
             MainGUI ventana = new MainGUI();
             ventana.setVisible(true);
-            ventana.setLocationRelativeTo(null);
+            ventana.setLocationRelativeTo(null); // Centra la ventana en pantalla
         });
     }
 }
